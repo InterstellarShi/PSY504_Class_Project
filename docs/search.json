@@ -1,0 +1,205 @@
+[
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "This site is the final project for PSY 504: Advanced Statistics for the Behavioral Sciences.\nAuthor. Yujingai (Emmy) Shi — first-year Ph.D. student in the Department of Psychology and the Princeton Neuroscience Institute, working with the Sabine Kastner on visual attention and perception.\nData. Preliminary measurements from 316 FEF units recorded across 8 sessions in two macaques.\n\n\n\n\n\n Back to top"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html",
+    "href": "FEF_mulRegression_Tutorial.html",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "",
+    "text": "Linear regression aims to predict one continuous outcome based on predictive variables. Simple linear regression models the relationship between the dependent variable and one predictor ((y = a + bx + e)). On the other hand, multiple regression introduces a more natural solution for complex real-life questions by asking how several predictors could jontly relate to the outcome. Therefore, the formula model for multiple regression is: \\[\nY = \\beta_0 + \\beta_1 X_1 + \\beta_2 X_2 + \\cdots + \\beta_p X_p + \\varepsilon,\n\\] In this model, \\(Y\\) is the dependent variable (predicted outcome), \\(X_i\\) are the independent variables (predictors), \\(\\beta_0\\) is the intercept, \\(\\beta_i\\) represents the change in y given a one-unit change in the x variable while holding the other variables constant, and \\(\\varepsilon\\) represents the error term.\n\n\n\n\n\n\nNoteWhy this matters\n\n\n\nA single predictor is important in determing the whole relationship, but if we zoom out, and we might found a lot other confounds. This is exactly what we found in real world: we can see tons of factors influencing the real outcome. From the Simpson’s Paradox, we know that a trend observed in subgroups might disappear if we combine these groups. If we only look one variable, we might overlook other potential predictor’s influence. Multiple regression helps us to address this issue by allowing us to examine the contribution of each predictor while still controlling for others.\n\n\n\n\n\nThe frontal eye field (FEF) is an important region of prefrontal cortex involved in visual attention. In the past, we knew that it controls the voluntary and rapid eye movements, now we also know that it controls for covert attention without eye movements as well. Therefore, FEF contributes to the frontal-parietal connections works for primate visual attention.\nIn this dataset, we have extracellular single neuron recordings collected from two macaque monkeys under spatial attention tasks, in which we recorded the voltage changes of individual neurons while monkeys performed this task.\nWe got this dataset after spike sorting and manual curation, and we have high-quality, isolated neuron in this datset.For each of the neuron, we call it unit, and here is its metrics:\n\n\n\n\n\n\n\nVariable\nMeaning\n\n\n\n\nfiring_rate\nMean spike rate across the session in Hz\n\n\nfano_factor\nVariance/mean of spike counts\n\n\ncv_isi\nCoefficient of variation of inter-spike intervals\n\n\nburst_index\nTendency to fire in bursts\n\n\ntrough_to_peak\nThe interval between the global minimum of the spike and the following peak\n\n\nrepolarization_time\nTime to capture how quickly the neuron returns to baseline\n\n\ndepth\nDepth of the recording electrode in µm\n\n\nchannel\nRecording channel number on the probe\n\n\nn_spikes_unit\nTotal spike count for the unit\n\n\nsession_duration_sec\nLength of the recording session\n\n\nsession_id\nNumber for the recording session\n\n\nunit_id\nUnit ID\n\n\n\nIn summary, the full dataset has 316 units distributed across 8 sessions from two monkeys.\n\n\n\n\n\n\nTipNote on cell-type\n\n\n\nThe two most important metrics here are trough to peak duration and repolarization time since they are used to define the cell types. Normally, there are roughly two cell types, narrow-spiking interneurons tend to have short trough to peak duration and fast repolarization time, while broad-spiking excitatory neurons tend to have longer trough to peak duration and slower repolarization time. Apart from these feature differences, the cell types tend to differ in firing properties as well.\n\n\n\n\n\n\nDo the waveform features (trough to peak duration and repolarization time) of a neuron predict how often it fires?\n\nFrom this question, we will model firing_rate as a function of trough_to_peak, repolarization_time, and depth. The first two are waveform features that capture the cell-type info, and the depth is treated as a control, since the depth of the probe is known to influence baseline firing rates and we want to isolate the effect of waveform shape from other effect.\nTherefore, we aim to know in this tutorial that:\n\nWhether and potentially how these three predictors jointly relate to firing rate\nWhether the assumptions of OLS regression are appropriate here\nHow to interpret and examine these results here (we would also have a small writeup)\nWhat alternatives here might also suit for my dataset"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#what-is-multiple-regression",
+    "href": "FEF_mulRegression_Tutorial.html#what-is-multiple-regression",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "",
+    "text": "Linear regression aims to predict one continuous outcome based on predictive variables. Simple linear regression models the relationship between the dependent variable and one predictor ((y = a + bx + e)). On the other hand, multiple regression introduces a more natural solution for complex real-life questions by asking how several predictors could jontly relate to the outcome. Therefore, the formula model for multiple regression is: \\[\nY = \\beta_0 + \\beta_1 X_1 + \\beta_2 X_2 + \\cdots + \\beta_p X_p + \\varepsilon,\n\\] In this model, \\(Y\\) is the dependent variable (predicted outcome), \\(X_i\\) are the independent variables (predictors), \\(\\beta_0\\) is the intercept, \\(\\beta_i\\) represents the change in y given a one-unit change in the x variable while holding the other variables constant, and \\(\\varepsilon\\) represents the error term.\n\n\n\n\n\n\nNoteWhy this matters\n\n\n\nA single predictor is important in determing the whole relationship, but if we zoom out, and we might found a lot other confounds. This is exactly what we found in real world: we can see tons of factors influencing the real outcome. From the Simpson’s Paradox, we know that a trend observed in subgroups might disappear if we combine these groups. If we only look one variable, we might overlook other potential predictor’s influence. Multiple regression helps us to address this issue by allowing us to examine the contribution of each predictor while still controlling for others."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#the-dataset-single-neurons-data-in-macaque-frontal-eye-field-fef",
+    "href": "FEF_mulRegression_Tutorial.html#the-dataset-single-neurons-data-in-macaque-frontal-eye-field-fef",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "",
+    "text": "The frontal eye field (FEF) is an important region of prefrontal cortex involved in visual attention. In the past, we knew that it controls the voluntary and rapid eye movements, now we also know that it controls for covert attention without eye movements as well. Therefore, FEF contributes to the frontal-parietal connections works for primate visual attention.\nIn this dataset, we have extracellular single neuron recordings collected from two macaque monkeys under spatial attention tasks, in which we recorded the voltage changes of individual neurons while monkeys performed this task.\nWe got this dataset after spike sorting and manual curation, and we have high-quality, isolated neuron in this datset.For each of the neuron, we call it unit, and here is its metrics:\n\n\n\n\n\n\n\nVariable\nMeaning\n\n\n\n\nfiring_rate\nMean spike rate across the session in Hz\n\n\nfano_factor\nVariance/mean of spike counts\n\n\ncv_isi\nCoefficient of variation of inter-spike intervals\n\n\nburst_index\nTendency to fire in bursts\n\n\ntrough_to_peak\nThe interval between the global minimum of the spike and the following peak\n\n\nrepolarization_time\nTime to capture how quickly the neuron returns to baseline\n\n\ndepth\nDepth of the recording electrode in µm\n\n\nchannel\nRecording channel number on the probe\n\n\nn_spikes_unit\nTotal spike count for the unit\n\n\nsession_duration_sec\nLength of the recording session\n\n\nsession_id\nNumber for the recording session\n\n\nunit_id\nUnit ID\n\n\n\nIn summary, the full dataset has 316 units distributed across 8 sessions from two monkeys.\n\n\n\n\n\n\nTipNote on cell-type\n\n\n\nThe two most important metrics here are trough to peak duration and repolarization time since they are used to define the cell types. Normally, there are roughly two cell types, narrow-spiking interneurons tend to have short trough to peak duration and fast repolarization time, while broad-spiking excitatory neurons tend to have longer trough to peak duration and slower repolarization time. Apart from these feature differences, the cell types tend to differ in firing properties as well."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#our-research-question",
+    "href": "FEF_mulRegression_Tutorial.html#our-research-question",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "",
+    "text": "Do the waveform features (trough to peak duration and repolarization time) of a neuron predict how often it fires?\n\nFrom this question, we will model firing_rate as a function of trough_to_peak, repolarization_time, and depth. The first two are waveform features that capture the cell-type info, and the depth is treated as a control, since the depth of the probe is known to influence baseline firing rates and we want to isolate the effect of waveform shape from other effect.\nTherefore, we aim to know in this tutorial that:\n\nWhether and potentially how these three predictors jointly relate to firing rate\nWhether the assumptions of OLS regression are appropriate here\nHow to interpret and examine these results here (we would also have a small writeup)\nWhat alternatives here might also suit for my dataset"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#loading-packages",
+    "href": "FEF_mulRegression_Tutorial.html#loading-packages",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "2.1 Loading packages",
+    "text": "2.1 Loading packages\nWe will employ pacakges from the tidyverse to do plotting and data manipulation and the easystats to clean model summaries and effect sizes.\nSo we frist need to check whether each package is installed and then loads them all.\n\n\nCode\nrequired_pkgs &lt;- c(\n  \"tidyverse\",    \n  \"easystats\",     \n  \"performance\",   #check_model\n  \"parameters\",    \n  \"see\",          \n  \"correlation\",   \n  \"ggeffects\",     \n  \"gt\",            \n  \"broom\",         \n  \"patchwork\",    \n  \"car\",           \n  \"sandwich\",      \n  \"lmtest\",        \n  \"knitr\"\n)\n#install anything missing\nmissing_pkgs &lt;- setdiff(required_pkgs, rownames(installed.packages()))\nif (length(missing_pkgs) &gt; 0) {\n  install.packages(missing_pkgs, repos = \"https://cloud.r-project.org\")}\n\n#load\nsuppressPackageStartupMessages(\n  invisible(lapply(required_pkgs, library, character.only = TRUE))\n)\n\noptions(scipen = 999, digits = 4)\ntheme_set(theme_minimal(base_size = 12))"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#loading-the-data",
+    "href": "FEF_mulRegression_Tutorial.html#loading-the-data",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "2.2 Loading the data",
+    "text": "2.2 Loading the data\nThe data are stored as a CSV file; We need to load it with read_csv and have a quick look.\n\n\nCode\nfef &lt;- readr::read_csv(\"data/fef_prelim_metrics.csv\", show_col_types = FALSE)\n\nglimpse(fef)\n\n\nRows: 316\nColumns: 12\n$ session_id           &lt;chr&gt; \"2023-09-20_230920_140130\", \"2023-09-20_230920_14…\n$ unit_id              &lt;dbl&gt; 76, 94, 109, 248, 249, 257, 268, 271, 272, 274, 2…\n$ channel              &lt;dbl&gt; 46, 40, 34, 62, 62, 61, 60, 59, 58, 57, 56, 56, 5…\n$ depth                &lt;dbl&gt; 875, 1175, 1475, 75, 75, 125, 175, 225, 275, 325,…\n$ n_spikes_unit        &lt;dbl&gt; 42404, 324173, 141934, 18510, 69247, 142624, 2799…\n$ session_duration_sec &lt;dbl&gt; 10332, 10332, 10332, 10332, 10332, 10332, 10332, …\n$ trough_to_peak       &lt;dbl&gt; 0.1024, 0.2379, 0.3437, 0.7469, 0.7601, 0.1785, 0…\n$ repolarization_time  &lt;dbl&gt; 0.03635, 0.07931, 0.20489, 0.26768, 0.27429, 0.11…\n$ firing_rate          &lt;dbl&gt; 4.1041, 31.3752, 13.7371, 1.7915, 6.7021, 13.8039…\n$ fano_factor          &lt;dbl&gt; 1.292, 1.952, 3.415, 2.191, 1.744, 2.766, 2.669, …\n$ cv_isi               &lt;dbl&gt; 1.889, 1.656, 2.955, 4.007, 1.492, 2.163, 1.561, …\n$ burst_index          &lt;dbl&gt; 0.91262, 0.38318, 4.53866, 0.09088, 2.02452, 1.30…\n\n\nWe can do some sanity checks:\n\n\nCode\n#dimension\ndim(fef)\n\n\n[1] 316  12\n\n\nCode\n#number of units we have \nfef |&gt;\n  count(session_id, name = \"n_units\") |&gt;\n  knitr::kable(caption = \"Number of units recorded per session.\")\n\n\n\nNumber of units recorded per session.\n\n\nsession_id\nn_units\n\n\n\n\n2023-09-20_230920_140130\n38\n\n\n2023-09-21_230921_113113\n33\n\n\n2023-09-23_230923_150303\n54\n\n\n2023-09-24_230924_113501\n30\n\n\n2024-03-27_240327_114515\n56\n\n\n2024-04-06_240406_132530\n40\n\n\n2024-04-08_240408_123252\n39\n\n\n2024-04-09_240409_134911\n26\n\n\n\n\n\nCode\n#check missing values; (normally due to the data traits we assume none)\ncolSums(is.na(fef))\n\n\n          session_id              unit_id              channel \n                   0                    0                    0 \n               depth        n_spikes_unit session_duration_sec \n                   0                    0                    0 \n      trough_to_peak  repolarization_time          firing_rate \n                   0                    0                    0 \n         fano_factor               cv_isi          burst_index \n                   0                    0                    0 \n\n\n\n\n\n\n\n\nNoteAbout the data\n\n\n\n\nSo we confirmed that we have 316 units across 8 sessions\nThe number of units per session ranges is around 30-50 unit\nThere are no missing values"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#distributions-of-the-features",
+    "href": "FEF_mulRegression_Tutorial.html#distributions-of-the-features",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "3.1 Distributions of the features",
+    "text": "3.1 Distributions of the features\nWe focus on the four variables: the outcome firing_rate and the three predictors trough_to_peak, repolarization_time, and depth.\n\n\nCode\nfef_long &lt;- fef |&gt;\n  select(firing_rate, trough_to_peak, repolarization_time, depth) |&gt;\n  pivot_longer(everything(), names_to = \"variable\", values_to = \"value\")\n\nggplot(fef_long, aes(x = value)) +\n  geom_histogram(bins = 30, fill = \"#1f8a8c\", color = \"white\", alpha = 0.8) +\n  facet_wrap(~ variable, scales = \"free\", ncol = 3) +\n  labs(\n    x = NULL, y = \"Number of units\",\n    title = \"Distributions of features\"\n  )\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nNoteWhat we found\n\n\n\n\nfiring_rate is strongly right-skewed.\ntrough_to_peak is bimodal. This suggest there are two potential cell types here as we mentioned earlier."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#correlations",
+    "href": "FEF_mulRegression_Tutorial.html#correlations",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "3.2 Correlations",
+    "text": "3.2 Correlations\nWe can first check how the predictors may correlate with each other by having a correlation matrix since multiple regression does not expect predictors to be so tightly correlated (but could have some slight correlations).\n\n\nCode\nfef |&gt;\n  select(firing_rate, trough_to_peak, repolarization_time, depth) |&gt;\n  correlation::correlation() |&gt;\n  summary(redundant = TRUE) |&gt;\n  knitr::kable(digits = 2, caption = \"Pairwise Pearson correlations.\")\n\n\n\nPairwise Pearson correlations.\n\n\n\n\n\n\n\n\n\nParameter\nfiring_rate\ntrough_to_peak\nrepolarization_time\ndepth\n\n\n\n\nfiring_rate\n1.00\n0.23\n0.39\n-0.18\n\n\ntrough_to_peak\n0.23\n1.00\n0.53\n-0.10\n\n\nrepolarization_time\n0.39\n0.53\n1.00\n-0.05\n\n\ndepth\n-0.18\n-0.10\n-0.05\n1.00\n\n\n\n\n\n\n\n\n\n\n\nNoteCorrelatons\n\n\n\n\nAll of the three predictors have some correlations with the outcome, with repolarization time the strongest, but the extent is moderate, so we could see each of the predictor contribute to some correlation with the outcome.\nThe two waveform-shape variables correlate with each other with moderately strong r = 0.53, which is biologically reasonable.\nDepth is a great control here since it weakly correlate with the two waveform features"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#bivariate-relationships-with-the-outcome",
+    "href": "FEF_mulRegression_Tutorial.html#bivariate-relationships-with-the-outcome",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "3.3 Bivariate relationships with the outcome",
+    "text": "3.3 Bivariate relationships with the outcome\nWe can see from the scatterplot to show whether we can see linear patterns.\n\n\nCode\np1 &lt;- ggplot(fef, aes(trough_to_peak, firing_rate)) +\n  geom_point(alpha = 0.5, color = \"#1f8a8c\") +\n  geom_smooth(method = \"lm\", se = TRUE, color = \"#d97706\") +\n  labs(x = \"Trough-to-peak (ms)\", y = \"Firing rate (Hz)\")\n\np2 &lt;- ggplot(fef, aes(repolarization_time, firing_rate)) +\n  geom_point(alpha = 0.5, color = \"#1f8a8c\") +\n  geom_smooth(method = \"lm\", se = TRUE, color = \"#d97706\") +\n  labs(x = \"Repolarization time (ms)\", y = \"Firing rate (Hz)\")\n\np3 &lt;- ggplot(fef, aes(depth, firing_rate)) +\n  geom_point(alpha = 0.5, color = \"#1f8a8c\") +\n  geom_smooth(method = \"lm\", se = TRUE, color = \"#d97706\") +\n  labs(x = \"Depth (µm)\", y = \"Firing rate (Hz)\")\n\n(p1 | p2 | p3)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nNoteIn the scatterplot\n\n\n\n\nThe right-skew is very strong. So we can see the firing_rate points are most near the bottom and a few of them at very hight herz,and this non-constant feature suggests that homoskedasticity (the assumption that residual variance is constant) would not true. We need to address it later."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#the-model-we-will-fit",
+    "href": "FEF_mulRegression_Tutorial.html#the-model-we-will-fit",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "4.1 The model we will fit",
+    "text": "4.1 The model we will fit\nSpecifically, according to our plan, the model is like this: \\[\n\\text{firing\\_rate} = \\beta_0 + \\beta_1\\,\\text{trough\\_to\\_peak} + \\beta_2\\,\\text{repolarization\\_time} + \\beta_3\\,\\text{depth} + \\varepsilon.\n\\]"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#fitting-the-model",
+    "href": "FEF_mulRegression_Tutorial.html#fitting-the-model",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "4.2 Fitting the model",
+    "text": "4.2 Fitting the model\nWe fit a linear model with lm().\n\n\nCode\nfit &lt;- lm(firing_rate ~ trough_to_peak + repolarization_time + depth,\n          data = fef)\n\nfit\n\n\n\nCall:\nlm(formula = firing_rate ~ trough_to_peak + repolarization_time + \n    depth, data = fef)\n\nCoefficients:\n        (Intercept)       trough_to_peak  repolarization_time  \n            5.03122              0.31547             35.95989  \n              depth  \n           -0.00185"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#output",
+    "href": "FEF_mulRegression_Tutorial.html#output",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "4.3 Output",
+    "text": "4.3 Output\nWe can use summary(fit) to see the summarizing output.\n\n\nCode\nparameters::model_parameters(fit) |&gt;\n  print()\n\n\nParameter           | Coefficient |       SE |         95% CI | t(312) |      p\n-------------------------------------------------------------------------------\n(Intercept)         |        5.03 |     1.77 | [ 1.54,  8.52] |   2.84 | 0.005 \ntrough to peak      |        0.32 |     2.24 | [-4.08,  4.71] |   0.14 | 0.888 \nrepolarization time |       35.96 |     5.82 | [24.50, 47.42] |   6.18 | &lt; .001\ndepth               |   -1.85e-03 | 5.98e-04 | [ 0.00,  0.00] |  -3.09 | 0.002 \n\n\nEach row of this table corresponds to one coefficient.\n\nCoefficient\nCI low / CI high — the 95% confidence interval\nt — coefficient divided by its standard error.\np — the p-value for the null hypothesis\n\n\n\n\n\n\n\nImportantWhat can we read from this model summary about the question we want to ask\n\n\n\n\ntrough_to_peak We can see from the coefficient and p value that if we control repolarization_time and depth, then one millisecond of increase in trough-to-peak duration provides no additional information about firing rate. The 95% CI [−4.08, 4.71] easily includes zero.\n\nrepolarization_time Repolarization time shows the dominant effect. So we know that across the full observed range of repolarization time, predicted firing rate moves by roughly \\(35.96 \\times 0.5 \\approx 18\\) Hz, while holding the other predictors constant.\nNow from the summary we know that waveform shape predicts firing rate, but major predictive factor is specifically by repolarization_time instead of trough_to_peak. Depth contributes a small additional effect."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#plotting",
+    "href": "FEF_mulRegression_Tutorial.html#plotting",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "5.1 Plotting",
+    "text": "5.1 Plotting\n\n\nCode\nperformance::check_model(fit)\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nImportant\n\n\n\nWalking through each assumption panel:\n\nPosterior predictive check The green observed density is shifted right and get narrower than the blue density predicted by the model. The Gaussian assumption is a poor fit to this positive and right-skewed outcome. So this suggest that we need to transform firing_ratelater to handle it.\nLinearity Linearity itself is reasonable.\nHomogeneity of variance Residual variance grows with the fitted value, so this show a very clear version of heteroskedasticity and is exactly matched what we thought may have from the right-skew in section 3.\nInfluential observations All points sit inside the Cook’s-distance contours.\nCollinearity All three predictors land in the “Low (&lt; 5)” zone. Multicollinearity is not appearing to be a problem here.\nNormality of residuals The right tail have an upward trend. This is the predictable consequence of a right-skewed outcome and should improve substantially after a log transform."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#multicollinearity",
+    "href": "FEF_mulRegression_Tutorial.html#multicollinearity",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "5.2 Multicollinearity",
+    "text": "5.2 Multicollinearity\n\n\nCode\nperformance::check_collinearity(fit)\n\n\n\n  \n\n\n\n\n\n\n\n\n\nImportant\n\n\n\nThe VIF are all smaller than 5, all three predictors are inside the safe zone, so we dont wrroy about the multicollinearity problem here."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#heteroskedasticity",
+    "href": "FEF_mulRegression_Tutorial.html#heteroskedasticity",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "5.3 Heteroskedasticity",
+    "text": "5.3 Heteroskedasticity\n\n\nCode\nperformance::check_heteroscedasticity(fit)\n\n\nWarning: Heteroscedasticity (non-constant error variance) detected (p &lt; .001).\n\n\nThis mataching the observations above."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#normality-of-residuals",
+    "href": "FEF_mulRegression_Tutorial.html#normality-of-residuals",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "5.4 Normality of residuals",
+    "text": "5.4 Normality of residuals\n\n\nCode\nperformance::check_normality(fit)\n\n\nWarning: Non-normality of residuals detected (p &lt; .001).\n\n\nThis is matching the observations above."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#independence",
+    "href": "FEF_mulRegression_Tutorial.html#independence",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "5.5 Independence",
+    "text": "5.5 Independence\nIn this dataset, the 316 units come from only 8 sessions. Units recorded in the same session share an animal, an electrode position, and a recording day, so their residuals are very likely correlated.The independence assumption is likely violated.\n\n\n\n\n\n\nNoteSummary:\n\n\n\nThe checking assumptions show three problems - Homoscedasticity Violated, Heteroscedasticity detected (p &lt; .001) - Normality of residuals Violated, Shapiro–Wilk p &lt; .001 - Independence Violated,316 units come from only 8 sessions\nThe first two violations is of the right-skewed outcome. A log transform of firing_rate should largely fix them. The third (independence) variable, we address it with HC3 cluster-robust standard errors, which keep the OLS point estimates but recompute the standard errors to acknowledge within-session correlation."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#log-transform-the-outcome",
+    "href": "FEF_mulRegression_Tutorial.html#log-transform-the-outcome",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "6.1 Log-transform the outcome",
+    "text": "6.1 Log-transform the outcome\nFiring rates are right-skewed, so log() should stablizes variance.\n\n\nCode\nm_log &lt;- lm(log(firing_rate) ~ trough_to_peak + repolarization_time + depth,\n            data = fef)\n\ncheck_heteroscedasticity(m_log)\n\n\nWarning: Heteroscedasticity (non-constant error variance) detected (p = 0.004).\n\n\nCode\ncheck_normality(m_log)\n\n\nWarning: Non-normality of residuals detected (p = 0.031).\n\n\n\n\nCode\ncheck_model(m_log, check = c(\"homogeneity\", \"qq\"))"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#cluster-robust-ses",
+    "href": "FEF_mulRegression_Tutorial.html#cluster-robust-ses",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "6.2 Cluster-robust SEs",
+    "text": "6.2 Cluster-robust SEs\nUnits are nested in 8 sessions, so residuals aren’t independent. So we use HC3 to improve it.\n\n\nCode\nlibrary(sandwich); library(lmtest)\n\ncoeftest(m_log, vcov = vcovCL(m_log, cluster = ~ session_id, type = \"HC3\"))\n\n\n\nt test of coefficients:\n\n                      Estimate Std. Error t value  Pr(&gt;|t|)    \n(Intercept)          1.1445097  0.2986584    3.83   0.00015 ***\ntrough_to_peak       0.3585993  0.3912814    0.92   0.36013    \nrepolarization_time  4.3324937  1.0091417    4.29 0.0000235 ***\ndepth               -0.0003244  0.0000719   -4.51 0.0000092 ***\n---\nSignif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1\n\n\n\n\n\n\n\n\nNote\n\n\n\nSummary of the Violation Handle\n\nNon-normality — So we do the Log-transforming of the firing_rate, and we could see a lot of improvements. The QQ plot now tracks the reference line much better that previously, and although the violation check still returns p = .031, we could see the deviations are minor at this stage, so we largely fix this violations.\nHeteroscedasticity — We can see a lot of improvements after the log transform but we are not fully solve the problem of hereoscedasticity since we got (p = .004). I think the good point here is that the HC3 would provide robust inference even when residual variance isn’t constant, so we might have less worry on this. But in the future, we might need to think other way to transfor firing rates to solve this issue entirely.\nNon-independence (8 sessions) — We address this issue by clustering SE on session_id. Now we can see repolarization_time and depth remain highly significant and trough_to_peak stays non-significant, which is matching the original OLS conclusion."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#model-fit",
+    "href": "FEF_mulRegression_Tutorial.html#model-fit",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "7.1 Model fit",
+    "text": "7.1 Model fit\n\n\nCode\nr2(m_log)\n\n\n# R2 for Linear Regression\n       R2: 0.292\n  adj. R2: 0.285"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#standardized-coefficients",
+    "href": "FEF_mulRegression_Tutorial.html#standardized-coefficients",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "7.2 Standardized coefficients",
+    "text": "7.2 Standardized coefficients\n\n\nCode\nparameters(m_log, standardize = \"refit\")"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#partial-effect-sizes",
+    "href": "FEF_mulRegression_Tutorial.html#partial-effect-sizes",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "7.3 Partial effect sizes",
+    "text": "7.3 Partial effect sizes\n\n\nCode\nlibrary(effectsize)\neta_squared(car::Anova(m_log, type = 2), partial = TRUE)\n\n\n\n  \n\n\n\n\n\n\n\n\n\nNote\n\n\n\n\nOverall fit — The three predictors jointly explain 29% of the variance in log firing rate. This rate is actually pretty solide for neuron waveforms due to the noisy nature of the extracellular recordings and also we only have three waveform features in the model.\nWhich predictor matters most?\n\nrepolarization_time: β = 0.17, \\(\\eta_p^2\\) = .14, Now we can see the repolarization has the large effect compared to the medium effect by depth and negligible effect from trough to peak duration.\n\nNow we can see that longer repolarization times predict higher firing rates; and deeper units fire at lower rates."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#predicted-firing-rate-vs.-each-predictor",
+    "href": "FEF_mulRegression_Tutorial.html#predicted-firing-rate-vs.-each-predictor",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "8.1 Predicted firing rate vs. each predictor",
+    "text": "8.1 Predicted firing rate vs. each predictor\n\n\nCode\nlibrary(ggeffects)\n\np1 &lt;- plot(predict_response(m_log, \"trough_to_peak\")) +\n  labs(title = \"Trough-to-peak\", y = \"Predicted firing rate (Hz)\")\n\np2 &lt;- plot(predict_response(m_log, \"repolarization_time\")) +\n  labs(title = \"Repolarization time\", y = NULL)\n\np3 &lt;- plot(predict_response(m_log, \"depth\")) +\n  labs(title = \"Depth\", y = NULL)\n\np1 + p2 + p3\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nImportant\n\n\n\n\nTrough-to-peak (left) — The line slopes upward, but the CI band is wide enough,so the effect is statistically not very certain here.\nRepolarization time (middle) We can see a steep upward curve with a tight CI. We can see the predicted firing rate rises from from ~3 Hz at the shortest repolarization times to ~30 Hz at the longest across the observed range. This is the dominant predictor.\nDepth (right) — We can see a clear downward slope, it shows a real but smaller effect than repolarization time."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#summary-1",
+    "href": "FEF_mulRegression_Tutorial.html#summary-1",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "9.1 Summary",
+    "text": "9.1 Summary\nAcross 316 FEF units, three features jointly explained 29% of the variance in firing rate (with the log-transform):\n\nRepolarization time is the dominant predictor, so that means that the units with longer repolarization would fired faster.\ndepth of the elerode had a smaller negative effect\nTrough-to-peak duration was non-significant once the other features were controlled, even though it correlated moderately with firing rate.\n\nSo answering the question is that the repolarization time, compared to the trough to peak duration, is a greater predictive factor of how often the neuron fires."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#when-is-multiple-regression-the-right-tool",
+    "href": "FEF_mulRegression_Tutorial.html#when-is-multiple-regression-the-right-tool",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "9.2 When is multiple regression the right tool?",
+    "text": "9.2 When is multiple regression the right tool?\n\nThe outcome is continuous\nWhen we have several predictors and want to know each one’s unique contribution\nObservations are roughly independent :::"
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#some-alternatives",
+    "href": "FEF_mulRegression_Tutorial.html#some-alternatives",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "9.3 Some alternatives",
+    "text": "9.3 Some alternatives\nFor this dataset specifically, now we realized that a mixed-effects model with a random intercept by session_id would be the more appropriate and reasonable model fit here, since it would estimate session-level variability directly."
+  },
+  {
+    "objectID": "FEF_mulRegression_Tutorial.html#section",
+    "href": "FEF_mulRegression_Tutorial.html#section",
+    "title": "FEF_mulRegression_Tutorial",
+    "section": "9.4",
+    "text": "9.4\n\n\n\n\n\n\nImportant\n\n\n\n\nThank you for walking through this tutorial with me! And thank you Suyog for letting me have a chance to do such tutorial, it makes me explore new things and actually thinking more how I may use Quarto website for other things!"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Multiple Regression Tutorial on Single-neuron Data from Macaque FEF",
+    "section": "",
+    "text": "This is a tutorial walking through multiple linear regression in R, using preliminary data from my first-year project on the frontal eye field (FEF).\n→ Start the tutorial\n\nPSY 504 — Advanced Statistics for the Behavioral Sciences · Princeton University · Spring 2026\n\n\n\n\n\n Back to top"
+  }
+]

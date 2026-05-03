@@ -1,0 +1,22 @@
+/* css styles */
+body {
+  line-height: 1.65;
+}
+
+/*headings */
+h2 { margin-top: 2.2rem; }
+h3 { margin-top: 1.6rem; }
+
+/* color */
+code:not(pre code) {
+  color: #c0392b;
+  background-color: #f8f3eb;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+/* Highlight */
+.sidebar nav[role="doc-toc"] > ul a.active {
+  border-left: 3px solid #2c3e50;
+  font-weight: 600;
+}
