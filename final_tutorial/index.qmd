@@ -1,0 +1,11 @@
+---
+title: "Multiple Regression Tutorial on Single-neuron Data from Macaque FEF"
+---
+
+This is a tutorial walking through multiple linear regression in R, using preliminary data from my first-year project on the frontal eye field (FEF). 
+
+→ [Start the tutorial](FEF_mulRegression_Tutorial.qmd)
+
+---
+
+*PSY 504 — Advanced Statistics for the Behavioral Sciences · Princeton University · Spring 2026*

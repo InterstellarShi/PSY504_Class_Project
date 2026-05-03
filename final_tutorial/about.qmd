@@ -1,0 +1,10 @@
+---
+title: "About"
+---
+
+
+This site is the final project for **PSY 504: Advanced Statistics for the Behavioral Sciences**.
+
+**Author.** Yujingai (Emmy) Shi — first-year Ph.D. student in the Department of Psychology and the Princeton Neuroscience Institute, working with the Sabine Kastner on visual attention and perception.
+
+**Data.** Preliminary measurements from 316 FEF units recorded across 8 sessions in two macaques.

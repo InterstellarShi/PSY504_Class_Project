@@ -1,0 +1,462 @@
+---
+title: "FEF_mulRegression_Tutorial"
+subtitle: "Using single-neuron recordings data from macaque frontal eye field (FEF)"
+author: "Yujingai (Emmy) Shi"
+date: today
+date-format: "MMMM D, YYYY"
+abstract: |
+  This tutorial aims to provide step-by-step instructions on multiple linear
+  regression in R; we are using a dataset of 316 single neurons recorded from
+  the frontal eye field (FEF) of two macaque monkeys.For the data, we employed 
+  the linear probes with 128 channels to acquired them.
+  In this tutorial, we would walkthrough the exploratory analysis, 
+  model fitting, assumption checking, and effect sizes, and a discussion on 
+  alternative options.
+---
+
+```{r setup}
+#| include: false
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  message = FALSE,
+  fig.align = "center",
+  dpi = 150
+)
+```
+
+# 1. Introduction
+
+## 1.1 What is multiple regression?
+
+Linear regression aims to predict one continuous outcome based on predictive variables. Simple linear regression models the relationship between the dependent variable and one predictor (\(y = a + bx + e\)). On the other hand, multiple regression introduces a more natural solution for complex real-life questions by asking how several predictors could jontly relate to the outcome. Therefore, the formula model for multiple regression is:
+$$
+Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \cdots + \beta_p X_p + \varepsilon,
+$$
+In this model, $Y$ is the dependent variable (predicted outcome), $X_i$ are the independent variables (predictors), $\beta_0$ is the intercept, $\beta_i$ represents the change in y given a one-unit change in the x variable while holding the other variables constant, and $\varepsilon$ represents the error term. 
+
+::: {.callout-note}
+## Why this matters
+A single predictor is important in determing the whole relationship, but if we zoom out, and we might found a lot other confounds. This is exactly what we found in real world: we can see tons of factors influencing the real outcome. From the Simpson's Paradox, we know that a trend observed in subgroups might disappear if we combine these groups. If we only look one variable, we might overlook other potential predictor's influence. Multiple regression helps us to  address this issue by allowing us to examine the contribution of each predictor while still controlling for others.
+:::
+
+## 1.2 The dataset: single neurons data in macaque Frontal Eye Field (FEF)
+
+The frontal eye field (FEF) is an important region of prefrontal cortex involved in visual attention. In the past, we knew that it controls the voluntary and rapid eye movements, now we also know that it controls for covert attention without eye movements as well. Therefore, FEF contributes to the frontal-parietal connections works for primate visual attention.
+
+In this dataset, we have extracellular single neuron recordings collected from two macaque monkeys under spatial attention tasks, in which we recorded the voltage changes of individual neurons while monkeys performed this task. 
+
+We got this dataset after spike sorting and manual curation, and we have high-quality, isolated neuron in this datset.For each of the neuron, we call it **unit**, and here is its metrics: 
+
+| Variable | Meaning |
+|---|---|
+| `firing_rate` | Mean spike rate across the session in Hz |
+| `fano_factor` | Variance/mean of spike counts |
+| `cv_isi` | Coefficient of variation of inter-spike intervals |
+| `burst_index` | Tendency to fire in bursts |
+| `trough_to_peak` | The interval between the global minimum of the spike and the following peak |
+| `repolarization_time` | Time to capture how quickly the neuron returns to baseline |
+| `depth` | Depth of the recording electrode in µm |
+| `channel` | Recording channel number on the probe |
+| `n_spikes_unit` | Total spike count for the unit |
+| `session_duration_sec` | Length of the recording session |
+| `session_id` | Number for the recording session |
+| `unit_id` | Unit ID |
+
+In summary, the full dataset has **316 units** distributed across **8 sessions** from **two monkeys**.
+
+::: {.callout-tip}
+## Note on cell-type
+The two most important metrics here are trough to **peak duration** and **repolarization time** since they are used to define the cell types. Normally, there are roughly two cell types, **narrow-spiking interneurons** tend to have short trough to peak duration and fast repolarization time, while **broad-spiking excitatory neurons** tend to have longer trough to peak duration and slower repolarization time. Apart from these feature differences, the cell types tend to differ in firing properties as well.
+:::
+
+## 1.3 Our research question
+
+> **Do the waveform features (trough to peak duration and repolarization time) of a neuron predict how often it fires?**
+
+From this question, we will model `firing_rate` as a function of `trough_to_peak`, `repolarization_time`, and `depth`. The first two are waveform features that capture the cell-type info, and the `depth` is treated as a control, since the depth of the probe is known to influence baseline firing rates and we want to isolate the effect of waveform shape from other effect.
+
+Therefore, we aim to know in this tutorial that: 
+
+1. Whether and potentially how these three predictors jointly relate to firing rate
+2. Whether the assumptions of OLS regression are appropriate here 
+4. How to interpret and examine these results here (we would also have a small writeup)
+5. What alternatives here might also suit for my dataset
+
+# 2. Setup
+
+## 2.1 Loading packages
+We will employ pacakges from the **tidyverse** to do plotting and data manipulation and the **easystats** to clean model summaries and effect sizes.
+
+So we frist need to check whether each package is installed and then loads them all. 
+```{r packages}
+required_pkgs <- c(
+  "tidyverse",    
+  "easystats",     
+  "performance",   #check_model
+  "parameters",    
+  "see",          
+  "correlation",   
+  "ggeffects",     
+  "gt",            
+  "broom",         
+  "patchwork",    
+  "car",           
+  "sandwich",      
+  "lmtest",        
+  "knitr"
+)
+#install anything missing
+missing_pkgs <- setdiff(required_pkgs, rownames(installed.packages()))
+if (length(missing_pkgs) > 0) {
+  install.packages(missing_pkgs, repos = "https://cloud.r-project.org")}
+
+#load
+suppressPackageStartupMessages(
+  invisible(lapply(required_pkgs, library, character.only = TRUE))
+)
+
+options(scipen = 999, digits = 4)
+theme_set(theme_minimal(base_size = 12))
+```
+
+## 2.2 Loading the data
+The data are stored as a CSV file; We need to load it with **read_csv** and have a quick look.
+
+```{r load-data}
+fef <- readr::read_csv("data/fef_prelim_metrics.csv", show_col_types = FALSE)
+
+glimpse(fef)
+```
+
+We can do some sanity checks:
+
+```{r data-sanity}
+#dimension
+dim(fef)
+
+#number of units we have 
+fef |>
+  count(session_id, name = "n_units") |>
+  knitr::kable(caption = "Number of units recorded per session.")
+
+#check missing values; (normally due to the data traits we assume none)
+colSums(is.na(fef))
+```
+::: {.callout-note}
+## About the data
+- So we confirmed that we  have **316 units** across **8 sessions**
+- The number of units per session ranges is around 30-50 unit
+- There are no missing values 
+:::
+
+# 3. Exploratory Data Analysis
+Before fitting any model, we can first see the  distributions of each variable and pairwise relationships so we can have an understanding of how we can model it later :)
+
+## 3.1 Distributions of the features
+
+We focus on the four variables: the outcome **firing_rate** and the three predictors **trough_to_peak**, **repolarization_time**, and **depth**.
+
+```{r distributions}
+fef_long <- fef |>
+  select(firing_rate, trough_to_peak, repolarization_time, depth) |>
+  pivot_longer(everything(), names_to = "variable", values_to = "value")
+
+ggplot(fef_long, aes(x = value)) +
+  geom_histogram(bins = 30, fill = "#1f8a8c", color = "white", alpha = 0.8) +
+  facet_wrap(~ variable, scales = "free", ncol = 3) +
+  labs(
+    x = NULL, y = "Number of units",
+    title = "Distributions of features"
+  )
+```
+::: {.callout-note}
+## What we found
+1. **`firing_rate` is strongly right-skewed.** 
+2. **`trough_to_peak` is bimodal.** This suggest there are two potential cell types here as we mentioned earlier.
+:::
+
+## 3.2 Correlations
+
+We can first check how the predictors may correlate with each other by having a correlation matrix since multiple regression does not expect predictors to be so tightly correlated (but could have some slight correlations).
+
+```{r corr-matrix}
+fef |>
+  select(firing_rate, trough_to_peak, repolarization_time, depth) |>
+  correlation::correlation() |>
+  summary(redundant = TRUE) |>
+  knitr::kable(digits = 2, caption = "Pairwise Pearson correlations.")
+```
+
+::: {.callout-note}
+## Correlatons
+- **All of the three predictors have some correlations with the outcome**, with repolarization time the strongest, but the extent is moderate, so we could see each of the predictor contribute to some correlation with the outcome.
+- **The two waveform-shape variables correlate with each other with moderately strong  r = 0.53**, which is biologically reasonable. 
+- **Depth** is a great control here since it weakly correlate with the two waveform features 
+:::
+
+## 3.3 Bivariate relationships with the outcome
+We can see from the scatterplot to show whether we can see linear patterns.
+
+```{r scatterplots, fig.height=4}
+p1 <- ggplot(fef, aes(trough_to_peak, firing_rate)) +
+  geom_point(alpha = 0.5, color = "#1f8a8c") +
+  geom_smooth(method = "lm", se = TRUE, color = "#d97706") +
+  labs(x = "Trough-to-peak (ms)", y = "Firing rate (Hz)")
+
+p2 <- ggplot(fef, aes(repolarization_time, firing_rate)) +
+  geom_point(alpha = 0.5, color = "#1f8a8c") +
+  geom_smooth(method = "lm", se = TRUE, color = "#d97706") +
+  labs(x = "Repolarization time (ms)", y = "Firing rate (Hz)")
+
+p3 <- ggplot(fef, aes(depth, firing_rate)) +
+  geom_point(alpha = 0.5, color = "#1f8a8c") +
+  geom_smooth(method = "lm", se = TRUE, color = "#d97706") +
+  labs(x = "Depth (µm)", y = "Firing rate (Hz)")
+
+(p1 | p2 | p3)
+```
+::: {.callout-note}
+## In the scatterplot
+- **The right-skew is very strong.** So we can see the `firing_rate` points are most near the bottom and a few of them at very hight herz,and this non-constant feature suggests that **homoskedasticity** (the assumption that residual variance is constant) would not true. We need to address it later. 
+:::
+
+# 4. Fitting the multiple regression
+
+## 4.1 The model we will fit
+
+Specifically, according to our plan, the model is like this: 
+$$
+\text{firing\_rate} = \beta_0 + \beta_1\,\text{trough\_to\_peak} + \beta_2\,\text{repolarization\_time} + \beta_3\,\text{depth} + \varepsilon.
+$$
+
+## 4.2 Fitting the model
+
+We fit a linear model with `lm()`.
+
+```{r fit-model}
+fit <- lm(firing_rate ~ trough_to_peak + repolarization_time + depth,
+          data = fef)
+
+fit
+```
+## 4.3 Output
+
+We can use `summary(fit)` to see the summarizing output. 
+
+```{r model-summary}
+parameters::model_parameters(fit) |>
+  print()
+```
+Each row of this table corresponds to one coefficient.
+
+- **Coefficient** 
+- **CI low / CI high** — the 95% confidence interval 
+- **t** — coefficient divided by its standard error.
+- **p** — the p-value for the null hypothesis 
+
+::: {.callout-important}
+## What can we read from this model summary about the question we want to ask
+
+- **`trough_to_peak`** We can see from the coefficient and p value that if we control `repolarization_time` and `depth`, then one millisecond of increase in trough-to-peak duration provides no additional information about firing rate. The 95% CI [−4.08, 4.71] easily includes zero.
+
+**`repolarization_time`** Repolarization time shows the dominant effect. So we know that across the full observed range of repolarization time, predicted firing rate moves by roughly $35.96 \times 0.5 \approx 18$ Hz, while holding the other predictors constant.
+
+**Now from the summary we know that waveform shape predicts firing rate, but major predictive factor is specifically by `repolarization_time` instead of `trough_to_peak`. Depth contributes a small additional effect.**
+:::
+
+# 5. Checking Assumptions
+
+We need to check the assumptions behind the OLS multiple regression model. The four assumptions are:
+
+1. **Linearity** — the relationship between each predictor and the outcome is linear.
+2. **Independence of errors** — residuals from one observation are not correlated with residuals from another.
+3. **Normality of residuals** — the residuals are roughly normally distributed.
+4. **Homoscedasticity** — residual variance is constant 
+
+Other things like multicollinearity could also be checked here 
+
+## 5.1 Plotting
+
+```{r check-model, fig.height=8, fig.width=9}
+performance::check_model(fit)
+```
+
+::: {.callout-important}
+Walking through each assumption panel:
+
+- **Posterior predictive check** The green observed density is shifted right and get narrower than the blue density predicted by the model. The Gaussian assumption is a poor fit to this positive and  right-skewed outcome. So this suggest that we need to transform `firing_rate`later to handle it. 
+- **Linearity**   Linearity itself is reasonable. 
+- **Homogeneity of variance** Residual variance grows with the fitted value, so this show a very clear version of **heteroskedasticity** and is exactly matched what we thought may have from the right-skew in section 3.
+- **Influential observations** All points sit inside the Cook's-distance contours.
+- **Collinearity** All three predictors land in the "Low (< 5)" zone. Multicollinearity is not appearing to be a problem here. 
+- **Normality of residuals**  The right tail have an upward trend. This is the predictable consequence of a right-skewed outcome and should improve substantially after a log transform.
+:::
+
+## 5.2 Multicollinearity 
+
+```{r vif}
+performance::check_collinearity(fit)
+```
+
+::: {.callout-important}
+The VIF are all smaller than 5, all three predictors are inside the safe zone, so we dont wrroy about the multicollinearity problem here.
+:::
+
+## 5.3 Heteroskedasticity
+
+```{r het-test}
+performance::check_heteroscedasticity(fit)
+```
+This mataching the observations above. 
+
+## 5.4 Normality of residuals
+
+```{r norm-test}
+performance::check_normality(fit)
+```
+This is matching the observations above. 
+
+## 5.5 Independence
+In this dataset, the 316 units come from only **8 sessions**. Units recorded in the same session share an animal, an electrode position, and a recording day, so their residuals are very likely correlated.The independence assumption is likely violated. 
+
+
+::: {.callout-note}
+## Summary:
+
+The checking assumptions show three problems
+- **Homoscedasticity** Violated,  Heteroscedasticity detected (p < .001) 
+- **Normality of residuals** Violated, Shapiro–Wilk p < .001 
+- **Independence** Violated,316 units come from only 8 sessions 
+
+The first two violations is of the right-skewed outcome. A log transform of `firing_rate` should largely fix them.
+The third (independence) variable, we  address it with **HC3 cluster-robust standard errors**, which keep the OLS point estimates but recompute the standard errors to acknowledge within-session correlation.
+:::
+
+# 6. Fixing the Violations
+
+So we can the assumptions violated for **heteroscedasticity** and **non-normal residuals**. We now need to do a log transform for th firing rates to solve this problem. 
+
+## 6.1 Log-transform the outcome
+
+Firing rates are right-skewed, so `log()` should stablizes variance.
+
+```{r}
+m_log <- lm(log(firing_rate) ~ trough_to_peak + repolarization_time + depth,
+            data = fef)
+
+check_heteroscedasticity(m_log)
+check_normality(m_log)
+```
+
+```{r}
+#| fig-width: 8
+#| fig-height: 5
+check_model(m_log, check = c("homogeneity", "qq"))
+```
+
+## 6.2 Cluster-robust SEs
+
+Units are nested in 8 sessions, so residuals aren't independent. So we use HC3 to improve it.
+
+```{r}
+library(sandwich); library(lmtest)
+
+coeftest(m_log, vcov = vcovCL(m_log, cluster = ~ session_id, type = "HC3"))
+```
+
+::: {.callout-note}
+**Summary of the Violation Handle**
+
+- **Non-normality** — So we do the Log-transforming of the `firing_rate`, and we could see a lot of improvements. The QQ plot now tracks the reference line much better that previously, and although the violation check still returns p = .031, we could see the deviations are minor at this stage, so we largely fix this violations.
+
+- **Heteroscedasticity** — We can see a lot of improvements  after the log transform but we are not fully solve the problem of hereoscedasticity since we got (p = .004). I think the good point here is that the HC3 would provide robust inference even when residual variance isn't constant, so we might have less worry on this. But in the future, we might need to think other way to transfor firing rates to solve this issue entirely. 
+
+- **Non-independence (8 sessions)** — We address this issue by clustering SE on `session_id`. Now we can see `repolarization_time` and `depth` remain highly significant and `trough_to_peak` stays non-significant, which is matching the original OLS conclusion.
+:::
+
+# 7. Effect Size and the Interpretation
+
+## 7.1 Model fit
+
+```{r}
+r2(m_log)
+```
+
+## 7.2 Standardized coefficients
+
+```{r}
+parameters(m_log, standardize = "refit")
+```
+## 7.3 Partial effect sizes
+
+```{r}
+library(effectsize)
+eta_squared(car::Anova(m_log, type = 2), partial = TRUE)
+```
+::: {.callout-note}
+- **Overall fit** — The three predictors jointly explain **29% of the variance** in log firing rate. This rate is actually pretty solide for neuron waveforms due to the noisy nature of the extracellular recordings and also we only have three waveform features in the model. 
+- **Which predictor matters most?** 
+  - `repolarization_time`: β = 0.17, $\eta_p^2$ = .14, Now we can see the repolarization has the  **large** effect compared to the medium effect by depth and negligible effect from trough to peak duration. 
+- Now we can see that longer repolarization times predict higher firing rates; and deeper units fire at lower rates. 
+:::
+
+# 8. Visualizing Partial Effects
+
+## 8.1 Predicted firing rate vs. each predictor
+
+```{r}
+#| fig-width: 10
+#| fig-height: 4
+library(ggeffects)
+
+p1 <- plot(predict_response(m_log, "trough_to_peak")) +
+  labs(title = "Trough-to-peak", y = "Predicted firing rate (Hz)")
+
+p2 <- plot(predict_response(m_log, "repolarization_time")) +
+  labs(title = "Repolarization time", y = NULL)
+
+p3 <- plot(predict_response(m_log, "depth")) +
+  labs(title = "Depth", y = NULL)
+
+p1 + p2 + p3
+```
+::: {.callout-important}
+
+- **Trough-to-peak (left)** — The line slopes upward, but the CI band is wide enough,so the effect is statistically not very certain here.
+
+- **Repolarization time (middle)** We can see a steep upward curve with a tight CI. We can see the predicted firing rate rises from from ~3 Hz at the shortest repolarization times to ~30 Hz at the longest across the observed range. This is the dominant predictor.
+
+- **Depth (right)** — We can see a clear downward slope, it shows a real but smaller effect than repolarization time.
+:::
+
+# 9. Summary and Discussion
+
+## 9.1 Summary
+
+Across 316 FEF units, three features jointly explained **29% of the variance** in firing rate (with the log-transform):
+
+- **Repolarization time** is the dominant predictor, so that means that the units with longer repolarization would fired faster.
+- **depth of the elerode** had a smaller negative effect 
+- **Trough-to-peak duration** was non-significant once the other features were controlled, even though it correlated moderately with firing rate. 
+
+So answering the question is that the repolarization time, compared to the trough to peak duration, is a greater predictive factor of how often the neuron fires. 
+
+## 9.2 When is multiple regression the right tool?
+
+- The outcome is continuous
+- When we have several predictors and want to know each one's *unique* contribution
+- Observations are roughly independent
+:::
+
+## 9.3 Some alternatives
+
+For this dataset specifically, now we realized that a **mixed-effects model** with a random intercept by `session_id` would be the more appropriate and reasonable model fit here, since it would estimate session-level variability directly.
+
+## 9.4 
+::: {.callout-important}
+- Thank you for walking through this tutorial with me! And thank you Suyog for letting me have a chance to do such tutorial, it makes me explore new things and actually thinking more how I may use Quarto website for other things!
+:::
+------------------------------------------------------------------------
+
+

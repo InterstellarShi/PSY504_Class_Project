@@ -1,0 +1,55 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "FEF Multiple Regression Tutorial"
+  description: "A Quarto tutorial demonstrating multiple linear regression on single-neuron recordings from macaque frontal eye field (FEF). PSY 504 Final Project, Princeton University."
+  page-navigation: true
+  back-to-top-navigation: true
+  navbar:
+    background: light
+    pinned: true
+    left:
+      - text: "Home"
+        href: index.qmd
+      - text: "Tutorial"
+        href: FEF_mulRegression_Tutorial.qmd
+      - text: "About"
+        href: about.qmd
+    right:
+      - icon: github
+        href: https://github.com/InterstellarShi/PSY504_Class_Project
+        aria-label: GitHub
+  page-footer:
+    left: "PSY 504 Final Project · Yujingai (Emmy) Shi · Spring 2026"
+    right: "Built with [Quarto](https://quarto.org)"
+
+format:
+  html:
+    theme:
+      light: cosmo
+    css: styles.css
+    toc: true
+    toc-depth: 3
+    toc-location: right
+    code-fold: show
+    code-tools: true
+    code-overflow: wrap
+    code-link: true
+    fig-width: 7
+    fig-height: 4.5
+    fig-align: center
+    fig-cap-location: bottom
+    tbl-cap-location: top
+    df-print: paged
+    smooth-scroll: true
+    link-external-newwindow: true
+    citations-hover: true
+
+execute:
+  freeze: auto
+  warning: false
+  message: false
+
+editor: source
